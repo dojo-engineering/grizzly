@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -28,7 +29,7 @@ import (
  *    them to IDs, having requested an ID<->string mapping from the API.
  */
 
-const smBaseURL = "https://synthetic-monitoring-api.grafana.net"
+var smBaseURL = "https://synthetic-monitoring-api.grafana.net"
 
 type Probes struct {
 	ByID   map[int64]synthetic_monitoring.Probe
@@ -40,6 +41,14 @@ func NewSyntheticMonitoringClient() (*smapi.Client, error) {
 	client, err := NewHttpClient()
 	if err != nil {
 		return nil, err
+	}
+
+	if smBaseOverrideURLFromEnv, exists := os.LookupEnv("GRAFANA_SM_URL"); exists {
+		smBaseOverrideURL, err := url.ParseRequestURI(smBaseOverrideURLFromEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse GRAFANA_SM_URL environment variable - %v", err)
+		}
+		smBaseURL = smBaseOverrideURL.String()
 	}
 
 	smClient := smapi.NewClient(smBaseURL, "", client)
